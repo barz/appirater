@@ -187,7 +187,8 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 		
 		// increment the use count
 		int useCount = [userDefaults integerForKey:kAppiraterUseCount];
-		useCount++;
+        if (useCount < INT_MAX) // prevent rollover
+            useCount++;
 		[userDefaults setInteger:useCount forKey:kAppiraterUseCount];
 		if (APPIRATER_DEBUG)
 			NSLog(@"APPIRATER Use count: %d", useCount);
@@ -235,7 +236,8 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 		
 		// increment the significant event count
 		int sigEventCount = [userDefaults integerForKey:kAppiraterSignificantEventCount];
-		sigEventCount++;
+        if (sigEventCount < INT_MAX) // prevent rollover
+            sigEventCount++;
 		[userDefaults setInteger:sigEventCount forKey:kAppiraterSignificantEventCount];
 		if (APPIRATER_DEBUG)
 			NSLog(@"APPIRATER Significant event count: %d", sigEventCount);
