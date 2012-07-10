@@ -238,3 +238,23 @@ extern NSString *const kAppiraterReminderRequestDate;
 + (void)rateApp;
 
 @end
+
+
+// Hsoi 10-Jul-2012 - Provide methods for all of the Appirater configurable parts. This allows for implementation
+// via subclassing.
+//
+// Default implementations return the corresponding #define values from above.
+@interface Appirater (ConfigurationOverides)
+
++ (int)appID;                       //  APPIRATER_APP_ID
+- (NSString*)message;               //  APPIRATER_MESSAGE
+- (NSString*)messageTitle;          //  APPIRATER_MESSAGE_TITLE
+- (NSString*)cancelButton;          //  APPIRATER_CANCEL_BUTTON
+- (NSString*)rateButton;            //  APPIRATER_RATE_BUTTON
+- (NSString*)rateLater;             //  APPIRATER_RATE_LATER
+- (double)daysUntilPrompt;          //  APPIRATER_DAYS_UNTIL_PROMPT
+- (int)usesUntilPrompt;             //  APPIRATER_USES_UNTIL_PROMPT
+- (int)sigEventsUntilPrompt;        //  APPIRATER_SIG_EVENTS_UNTIL_PROMPT
+- (double)timeBeforeReminding;      //  APPIRATER_TIME_BEFORE_REMINDING
+
+@end

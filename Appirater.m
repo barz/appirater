@@ -50,16 +50,18 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 
 @interface Appirater ()
 - (BOOL)connectedToNetwork;
-+ (Appirater*)sharedInstance;
++ (id)sharedInstance;
 - (void)showRatingAlert;
 - (BOOL)ratingConditionsHaveBeenMet;
 - (void)incrementUseCount;
 - (void)hideRatingAlert;
++ (void)rateApp;
 @end
 
 @implementation Appirater 
 
 @synthesize ratingAlert;
+
 
 - (BOOL)connectedToNetwork {
     // Create zero addy
@@ -92,13 +94,13 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
     return ((isReachable && !needsConnection) || nonWiFi) ? (testConnection ? YES : NO) : NO;
 }
 
-+ (Appirater*)sharedInstance {
-	static Appirater *appirater = nil;
++ (id)sharedInstance {
+	static id appirater = nil;
 	if (appirater == nil)
 	{
         static dispatch_once_t onceToken;
         dispatch_once(&onceToken, ^{
-            appirater = [[Appirater alloc] init];
+            appirater = [[self alloc] init];
             [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillResignActive) name:
                 UIApplicationWillResignActiveNotification object:nil];
         });
@@ -108,11 +110,11 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 }
 
 - (void)showRatingAlert {
-	UIAlertView *alertView = [[[UIAlertView alloc] initWithTitle:APPIRATER_MESSAGE_TITLE
-														 message:APPIRATER_MESSAGE
+	UIAlertView *alertView = [[[UIAlertView alloc] initWithTitle:[self messageTitle]
+														 message:[self message]
 														delegate:self
-											   cancelButtonTitle:APPIRATER_CANCEL_BUTTON
-											   otherButtonTitles:APPIRATER_RATE_BUTTON, APPIRATER_RATE_LATER, nil] autorelease];
+											   cancelButtonTitle:[self cancelButton]
+											   otherButtonTitles:[self rateButton], [self rateLater], nil] autorelease];
 	self.ratingAlert = alertView;
 	[alertView show];
 }
@@ -125,18 +127,18 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 	
 	NSDate *dateOfFirstLaunch = [NSDate dateWithTimeIntervalSince1970:[userDefaults doubleForKey:kAppiraterFirstUseDate]];
 	NSTimeInterval timeSinceFirstLaunch = [[NSDate date] timeIntervalSinceDate:dateOfFirstLaunch];
-	NSTimeInterval timeUntilRate = 60 * 60 * 24 * APPIRATER_DAYS_UNTIL_PROMPT;
+	NSTimeInterval timeUntilRate = 60 * 60 * 24 * [self daysUntilPrompt];
 	if (timeSinceFirstLaunch < timeUntilRate)
 		return NO;
 	
 	// check if the app has been used enough
 	int useCount = [userDefaults integerForKey:kAppiraterUseCount];
-	if (useCount <= APPIRATER_USES_UNTIL_PROMPT)
+	if (useCount <= [self usesUntilPrompt])
 		return NO;
 	
 	// check if the user has done enough significant events
 	int sigEventCount = [userDefaults integerForKey:kAppiraterSignificantEventCount];
-	if (sigEventCount <= APPIRATER_SIG_EVENTS_UNTIL_PROMPT)
+	if (sigEventCount <= [self sigEventsUntilPrompt])
 		return NO;
 	
 	// has the user previously declined to rate this version of the app?
@@ -150,7 +152,7 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 	// if the user wanted to be reminded later, has enough time passed?
 	NSDate *reminderRequestDate = [NSDate dateWithTimeIntervalSince1970:[userDefaults doubleForKey:kAppiraterReminderRequestDate]];
 	NSTimeInterval timeSinceReminderRequest = [[NSDate date] timeIntervalSinceDate:reminderRequestDate];
-	NSTimeInterval timeUntilReminder = 60 * 60 * 24 * APPIRATER_TIME_BEFORE_REMINDING;
+	NSTimeInterval timeUntilReminder = 60 * 60 * 24 * [self timeBeforeReminding];
 	if (timeSinceReminderRequest < timeUntilReminder)
 		return NO;
 	
@@ -282,13 +284,13 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 }
 
 + (void)appLaunched {
-	[Appirater appLaunched:YES];
+	[self appLaunched:YES];
 }
 
 + (void)appLaunched:(BOOL)canPromptForRating {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0),
                    ^{
-                       [[Appirater sharedInstance] incrementAndRate:canPromptForRating];
+                       [[self sharedInstance] incrementAndRate:canPromptForRating];
                    });
 }
 
@@ -303,20 +305,20 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 + (void)appWillResignActive {
 	if (APPIRATER_DEBUG)
 		NSLog(@"APPIRATER appWillResignActive");
-	[[Appirater sharedInstance] hideRatingAlert];
+	[[self sharedInstance] hideRatingAlert];
 }
 
 + (void)appEnteredForeground:(BOOL)canPromptForRating {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0),
                    ^{
-                       [[Appirater sharedInstance] incrementAndRate:canPromptForRating];
+                       [[self sharedInstance] incrementAndRate:canPromptForRating];
                    });
 }
 
 + (void)userDidSignificantEvent:(BOOL)canPromptForRating {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0),
                    ^{
-                       [[Appirater sharedInstance] incrementSignificantEventAndRate:canPromptForRating];
+                       [[self sharedInstance] incrementSignificantEventAndRate:canPromptForRating];
                    });
 }
 
@@ -325,7 +327,7 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 	NSLog(@"APPIRATER NOTE: iTunes App Store is not supported on the iOS simulator. Unable to open App Store page.");
 #else
 	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-	NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%d", APPIRATER_APP_ID]];
+	NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%d", [self appID]]];
 	[userDefaults setBool:YES forKey:kAppiraterRatedCurrentVersion];
 	[userDefaults synchronize];
 	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
@@ -346,7 +348,7 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 		case 1:
 		{
 			// they want to rate it
-			[Appirater rateApp];
+			[[self class] rateApp];
 			break;
 		}
 		case 2:
@@ -357,6 +359,68 @@ NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZSto
 		default:
 			break;
 	}
+}
+
+
+#pragma mark - Configuration methods
+
++ (int)appID
+{
+    return APPIRATER_APP_ID;
+}
+
+
+- (NSString*)message
+{
+    return APPIRATER_MESSAGE;
+}
+
+
+- (NSString*)messageTitle
+{
+    return APPIRATER_MESSAGE_TITLE;
+}
+
+
+- (NSString*)cancelButton
+{
+    return APPIRATER_CANCEL_BUTTON;
+}
+
+
+- (NSString*)rateButton
+{
+    return APPIRATER_RATE_BUTTON;
+}
+
+
+- (NSString*)rateLater
+{
+    return APPIRATER_RATE_LATER;
+}
+
+
+- (double)daysUntilPrompt
+{
+    return APPIRATER_DAYS_UNTIL_PROMPT;
+}
+
+
+- (int)usesUntilPrompt
+{
+    return APPIRATER_USES_UNTIL_PROMPT;
+}
+
+
+- (int)sigEventsUntilPrompt
+{
+    return APPIRATER_SIG_EVENTS_UNTIL_PROMPT;
+}
+
+
+- (double)timeBeforeReminding
+{
+    return APPIRATER_TIME_BEFORE_REMINDING;
 }
 
 @end
