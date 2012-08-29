@@ -342,7 +342,7 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
         reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%d", APPIRATER_APP_ID]];
 	}
 	
-	[[NSLocale preferredLanguages] objectAtIndex:0]
+	[[NSLocale preferredLanguages] objectAtIndex:0];
 
 	[userDefaults setBool:YES forKey:kAppiraterRatedCurrentVersion];
 	[userDefaults synchronize];
