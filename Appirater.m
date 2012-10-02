@@ -49,6 +49,21 @@ NSString *const kAppiraterReminderRequestDate		= @"kAppiraterReminderRequestDate
 NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZStore.woa/wa/viewContentsUserReviews?type=Purple+Software&id=APP_ID";
 NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/idAPP_ID";
 
+static NSString *_appId;
+static double _daysUntilPrompt = 30;
+static NSInteger _usesUntilPrompt = 20;
+static NSInteger _significantEventsUntilPrompt = -1;
+static double _timeBeforeReminding = 1;
+static BOOL _debug = NO;
+static id<AppiraterDelegate> _delegate;
+
+static NSString* _message = nil;
+static NSString* _messageTitle = nil;
+static NSString* _cancelButton = nil;
+static NSString* _rateButton = nil;
+static NSString* _rateLater = nil;
+
+
 @interface Appirater ()
 - (BOOL)connectedToNetwork;
 + (id)sharedInstance;
@@ -62,7 +77,34 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 @implementation Appirater 
 
 @synthesize ratingAlert;
+@synthesize delegate;
 
++ (void) setAppId:(NSString *)appId {
+    _appId = appId;
+}
+
++ (void) setDaysUntilPrompt:(double)value {
+    _daysUntilPrompt = value;
+}
+
++ (void) setUsesUntilPrompt:(NSInteger)value {
+    _usesUntilPrompt = value;
+}
+
++ (void) setSignificantEventsUntilPrompt:(NSInteger)value {
+    _significantEventsUntilPrompt = value;
+}
+
++ (void) setTimeBeforeReminding:(double)value {
+    _timeBeforeReminding = value;
+}
+
++ (void) setDebug:(BOOL)debug {
+    _debug = debug;
+}
++ (void)setDelegate:(id<AppiraterDelegate>)delegate{
+	_delegate = delegate;
+}
 
 - (BOOL)connectedToNetwork {
     // Create zero addy
@@ -90,7 +132,7 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 	
 	NSURL *testURL = [NSURL URLWithString:@"http://www.apple.com/"];
 	NSURLRequest *testRequest = [NSURLRequest requestWithURL:testURL  cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:20.0];
-	NSURLConnection *testConnection = [[[NSURLConnection alloc] initWithRequest:testRequest delegate:self] autorelease];
+	NSURLConnection *testConnection = [[NSURLConnection alloc] initWithRequest:testRequest delegate:self];
 	
     return ((isReachable && !needsConnection) || nonWiFi) ? (testConnection ? YES : NO) : NO;
 }
@@ -111,35 +153,39 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 }
 
 - (void)showRatingAlert {
-	UIAlertView *alertView = [[[UIAlertView alloc] initWithTitle:[self messageTitle]
-														 message:[self message]
+	UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:[[self class] messageTitle]
+														 message:[[self class] message]
 														delegate:self
-											   cancelButtonTitle:[self cancelButton]
-											   otherButtonTitles:[self rateButton], [self rateLater], nil] autorelease];
+											   cancelButtonTitle:[[self class] cancelButton]
+											   otherButtonTitles:[[self class] rateButton], [[self class] rateLater], nil];
 	self.ratingAlert = alertView;
 	[alertView show];
+
+	if(self.delegate && [self.delegate respondsToSelector:@selector(appiraterDidDisplayAlert:)]){
+		[self.delegate appiraterDidDisplayAlert:self];
+	}
 }
 
 - (BOOL)ratingConditionsHaveBeenMet {
-	if (APPIRATER_DEBUG)
+	if (_debug)
 		return YES;
 	
 	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
 	
 	NSDate *dateOfFirstLaunch = [NSDate dateWithTimeIntervalSince1970:[userDefaults doubleForKey:kAppiraterFirstUseDate]];
 	NSTimeInterval timeSinceFirstLaunch = [[NSDate date] timeIntervalSinceDate:dateOfFirstLaunch];
-	NSTimeInterval timeUntilRate = 60 * 60 * 24 * [self daysUntilPrompt];
+	NSTimeInterval timeUntilRate = 60 * 60 * 24 * [[self class] daysUntilPrompt];
 	if (timeSinceFirstLaunch < timeUntilRate)
 		return NO;
 	
 	// check if the app has been used enough
 	int useCount = [userDefaults integerForKey:kAppiraterUseCount];
-	if (useCount <= [self usesUntilPrompt])
+	if (useCount <= [[self class] usesUntilPrompt])
 		return NO;
 	
 	// check if the user has done enough significant events
 	int sigEventCount = [userDefaults integerForKey:kAppiraterSignificantEventCount];
-	if (sigEventCount <= [self sigEventsUntilPrompt])
+	if (sigEventCount <= [[self class] sigEventsUntilPrompt])
 		return NO;
 	
 	// has the user previously declined to rate this version of the app?
@@ -153,7 +199,7 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 	// if the user wanted to be reminded later, has enough time passed?
 	NSDate *reminderRequestDate = [NSDate dateWithTimeIntervalSince1970:[userDefaults doubleForKey:kAppiraterReminderRequestDate]];
 	NSTimeInterval timeSinceReminderRequest = [[NSDate date] timeIntervalSinceDate:reminderRequestDate];
-	NSTimeInterval timeUntilReminder = 60 * 60 * 24 * [self timeBeforeReminding];
+	NSTimeInterval timeUntilReminder = 60 * 60 * 24 * [[self class] timeBeforeReminding];
 	if (timeSinceReminderRequest < timeUntilReminder)
 		return NO;
 	
@@ -173,7 +219,7 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 		[userDefaults setObject:version forKey:kAppiraterCurrentVersion];
 	}
 	
-	if (APPIRATER_DEBUG)
+	if (_debug)
 		NSLog(@"APPIRATER Tracking version: %@", trackingVersion);
 	
 	if ([trackingVersion isEqualToString:version])
@@ -191,7 +237,7 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
         if (useCount < INT_MAX) // prevent rollover
             useCount++;
 		[userDefaults setInteger:useCount forKey:kAppiraterUseCount];
-		if (APPIRATER_DEBUG)
+		if (_debug)
 			NSLog(@"APPIRATER Use count: %d", useCount);
 	}
 	else
@@ -222,7 +268,7 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 		[userDefaults setObject:version forKey:kAppiraterCurrentVersion];
 	}
 	
-	if (APPIRATER_DEBUG)
+	if (_debug)
 		NSLog(@"APPIRATER Tracking version: %@", trackingVersion);
 	
 	if ([trackingVersion isEqualToString:version])
@@ -240,7 +286,7 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
         if (sigEventCount < INT_MAX) // prevent rollover
             sigEventCount++;
 		[userDefaults setInteger:sigEventCount forKey:kAppiraterSignificantEventCount];
-		if (APPIRATER_DEBUG)
+		if (_debug)
 			NSLog(@"APPIRATER Significant event count: %d", sigEventCount);
 	}
 	else
@@ -299,14 +345,14 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 
 - (void)hideRatingAlert {
 	if (self.ratingAlert.visible) {
-		if (APPIRATER_DEBUG)
+		if (_debug)
 			NSLog(@"APPIRATER Hiding Alert");
 		[self.ratingAlert dismissWithClickedButtonIndex:-1 animated:NO];
 	}	
 }
 
 + (void)appWillResignActive {
-	if (APPIRATER_DEBUG)
+	if (_debug)
 		NSLog(@"APPIRATER appWillResignActive");
 	[[self sharedInstance] hideRatingAlert];
 }
@@ -331,19 +377,9 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 #else
 	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
 
-	// added work arround for wrong URL Scheme & iOS 6
-	NSString *reviewURL;
-	if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 6.0) {
-        reviewURL = [templateReviewURLiOS6 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%d", APPIRATER_APP_ID]];
-        
-        reviewURL = [reviewURL stringByReplacingOccurrencesOfString:@"LANGUAGE" withString:[NSString stringWithFormat:@"%@", [[NSLocale preferredLanguages] objectAtIndex:0]]];
-		
-	} else {
-        reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%d", APPIRATER_APP_ID]];
-	}
+	// this URL Scheme should work in the iOS 6 App Store in addition to older stores
+	NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", [[self class] appId]]];
 	
-	[[NSLocale preferredLanguages] objectAtIndex:0];
-
 	[userDefaults setBool:YES forKey:kAppiraterRatedCurrentVersion];
 	[userDefaults synchronize];
 	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
@@ -359,18 +395,27 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 			// they don't want to rate it
 			[userDefaults setBool:YES forKey:kAppiraterDeclinedToRate];
 			[userDefaults synchronize];
+			if(self.delegate && [self.delegate respondsToSelector:@selector(appiraterDidDeclineToRate:)]){
+				[self.delegate appiraterDidDeclineToRate:self];
+			}
 			break;
 		}
 		case 1:
 		{
 			// they want to rate it
 			[[self class] rateApp];
+			if(self.delegate && [self.delegate respondsToSelector:@selector(appiraterDidOptToRate:)]){
+				[self.delegate appiraterDidOptToRate:self];
+			}
 			break;
 		}
 		case 2:
 			// remind them later
 			[userDefaults setDouble:[[NSDate date] timeIntervalSince1970] forKey:kAppiraterReminderRequestDate];
 			[userDefaults synchronize];
+			if(self.delegate && [self.delegate respondsToSelector:@selector(appiraterDidOptToRemindLater:)]){
+				[self.delegate appiraterDidOptToRemindLater:self];
+			}
 			break;
 		default:
 			break;
@@ -380,63 +425,82 @@ NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/id
 
 #pragma mark - Configuration methods
 
-+ (int)appID
++ (NSString*)appID
 {
-    return APPIRATER_APP_ID;
+    return _appId;
 }
 
 
-- (NSString*)message
++ (NSString*)message
 {
-    return APPIRATER_MESSAGE;
+    if (_message == nil) {
+        _message = APPIRATER_MESSAGE;
+    }
+
+    return _message;
 }
 
 
-- (NSString*)messageTitle
++ (NSString*)messageTitle
 {
-    return APPIRATER_MESSAGE_TITLE;
+    if (_messageTitle == nil) {
+        _messageTitle = APPIRATER_MESSAGE_TITLE;
+    }
+    return _messageTitle;
 }
 
 
-- (NSString*)cancelButton
++ (NSString*)cancelButton
 {
-    return APPIRATER_CANCEL_BUTTON;
+    if (_cancelButton == nil) {
+        _cancelButton = APPIRATER_CANCEL_BUTTON;
+    }
+    
+    return _cancelButton;
 }
 
 
-- (NSString*)rateButton
++ (NSString*)rateButton
 {
-    return APPIRATER_RATE_BUTTON;
+    if (_rateButton == nil) {
+        _rateButton = APPIRATER_RATE_BUTTON;
+    }
+    
+    return _rateButton;
 }
 
 
-- (NSString*)rateLater
++ (NSString*)rateLater
 {
-    return APPIRATER_RATE_LATER;
+    if (_rateLater == nil) {
+        _rateLater = APPIRATER_RATE_LATER;
+    }
+    
+    return _rateLater;
 }
 
 
-- (double)daysUntilPrompt
++ (double)daysUntilPrompt
 {
-    return APPIRATER_DAYS_UNTIL_PROMPT;
+    return _daysUntilPrompt;
 }
 
 
-- (int)usesUntilPrompt
++ (NSInteger)usesUntilPrompt
 {
-    return APPIRATER_USES_UNTIL_PROMPT;
+    return _usesUntilPrompt;
 }
 
 
-- (int)sigEventsUntilPrompt
++ (NSInteger)sigEventsUntilPrompt
 {
-    return APPIRATER_SIG_EVENTS_UNTIL_PROMPT;
+    return _significantEventsUntilPrompt;
 }
 
 
-- (double)timeBeforeReminding
++ (double)timeBeforeReminding
 {
-    return APPIRATER_TIME_BEFORE_REMINDING;
+    return _timeBeforeReminding;
 }
 
 @end
