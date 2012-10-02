@@ -48,41 +48,61 @@ extern NSString *const kAppiraterReminderRequestDate;
 /*
  Your localized app's name.
  */
+#ifndef APPIRATER_LOCALIZED_APP_NAME
 #define APPIRATER_LOCALIZED_APP_NAME    [[[NSBundle mainBundle] localizedInfoDictionary] objectForKey:(NSString *)kCFBundleNameKey]
+#endif
 
 /*
  Your app's name.
  */
+#ifndef APPIRATER_APP_NAME
 #define APPIRATER_APP_NAME				APPIRATER_LOCALIZED_APP_NAME ? APPIRATER_LOCALIZED_APP_NAME : [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString*)kCFBundleNameKey]
+#endif
 
 /*
  This is the message your users will see once they've passed the day+launches
  threshold.
  */
+#ifndef APPIRATER_LOCALIZED_MESSAGE
 #define APPIRATER_LOCALIZED_MESSAGE     NSLocalizedStringFromTable(@"If you enjoy using %@, would you mind taking a moment to rate it? It won't take more than a minute. Thanks for your support!", @"AppiraterLocalizable", nil)
+#endif
+#ifndef APPIRATER_MESSAGE
 #define APPIRATER_MESSAGE				[NSString stringWithFormat:APPIRATER_LOCALIZED_MESSAGE, APPIRATER_APP_NAME]
+#endif
 
 /*
  This is the title of the message alert that users will see.
  */
+#ifndef APPIRATER_LOCALIZED_MESSAGE_TITLE
 #define APPIRATER_LOCALIZED_MESSAGE_TITLE   NSLocalizedStringFromTable(@"Rate %@", @"AppiraterLocalizable", nil)
+#endif
+#ifndef APPIRATER_MESSAGE_TITLE
 #define APPIRATER_MESSAGE_TITLE             [NSString stringWithFormat:APPIRATER_LOCALIZED_MESSAGE_TITLE, APPIRATER_APP_NAME]
+#endif
 
 /*
  The text of the button that rejects reviewing the app.
  */
+#ifndef APPIRATER_CANCEL_BUTTON
 #define APPIRATER_CANCEL_BUTTON			NSLocalizedStringFromTable(@"No, Thanks", @"AppiraterLocalizable", nil)
+#endif
 
 /*
  Text of button that will send user to app review page.
  */
+#ifndef APPIRATER_LOCALIZED_RATE_BUTTON
 #define APPIRATER_LOCALIZED_RATE_BUTTON NSLocalizedStringFromTable(@"Rate %@", @"AppiraterLocalizable", nil)
+#endif
+#ifndef APPIRATER_RATE_BUTTON
 #define APPIRATER_RATE_BUTTON			[NSString stringWithFormat:APPIRATER_LOCALIZED_RATE_BUTTON, APPIRATER_APP_NAME]
+#endif
 
 /*
  Text for button to remind the user to review later.
  */
+#ifndef APPIRATER_RATE_LATER
 #define APPIRATER_RATE_LATER			NSLocalizedStringFromTable(@"Remind me later", @"AppiraterLocalizable", nil)
+#endif
 
 @interface Appirater : NSObject <UIAlertViewDelegate> {
 
@@ -157,7 +177,7 @@ extern NSString *const kAppiraterReminderRequestDate;
 /*
  Set your Apple generated software id here.
  */
-+ (void) setAppId:(NSString*)appId;
+- (void) setAppId:(NSString*)appId;
 
 /*
  Users will need to have the same version of your app installed for this many
@@ -210,6 +230,30 @@ extern NSString *const kAppiraterReminderRequestDate;
 + (void)setDelegate:(id<AppiraterDelegate>)delegate;
 
 @end
+
+
+// Hsoi 10-Jul-2012 - Provide methods for all of the Appirater configurable parts. This allows for implementation
+// via subclassing.
+//
+// Default implementations return the corresponding #define values from above.
+//
+// Hsoi 02-Oct-2012 - due to extensive changes to the original appirater code, I had to change this to
+// be class methods and other things to bring it in line. But it all should still work out the same.
+@interface Appirater (ConfigurationOverides)
+
++ (NSString*)appId;                 //  APPIRATER_APP_ID
++ (NSString*)message;               //  APPIRATER_MESSAGE
++ (NSString*)messageTitle;          //  APPIRATER_MESSAGE_TITLE
++ (NSString*)cancelButton;          //  APPIRATER_CANCEL_BUTTON
++ (NSString*)rateButton;            //  APPIRATER_RATE_BUTTON
++ (NSString*)rateLater;             //  APPIRATER_RATE_LATER
++ (double)daysUntilPrompt;          //  APPIRATER_DAYS_UNTIL_PROMPT
++ (NSInteger)usesUntilPrompt;       //  APPIRATER_USES_UNTIL_PROMPT
++ (NSInteger)sigEventsUntilPrompt;  //  APPIRATER_SIG_EVENTS_UNTIL_PROMPT
++ (double)timeBeforeReminding;      //  APPIRATER_TIME_BEFORE_REMINDING
+
+@end
+
 
 
 @interface Appirater(Deprecated)
