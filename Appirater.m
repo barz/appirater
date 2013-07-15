@@ -185,9 +185,9 @@ static NSString* _rateLater = nil;
 	self.ratingAlert = alertView;
     [alertView show];
 
-    id <AppiraterDelegate> delegate = _delegate;
-    if (delegate && [delegate respondsToSelector:@selector(appiraterDidDisplayAlert:)]) {
-             [delegate appiraterDidDisplayAlert:self];
+    id <AppiraterDelegate> thedelegate = _delegate;
+    if (thedelegate && [thedelegate respondsToSelector:@selector(appiraterDidDisplayAlert:)]) {
+             [thedelegate appiraterDidDisplayAlert:self];
     }
 }
 
@@ -458,11 +458,11 @@ static NSString* _rateLater = nil;
 	if (!_openInAppStore && NSStringFromClass([SKStoreProductViewController class]) != nil) {
 		
 		SKStoreProductViewController *storeViewController = [[SKStoreProductViewController alloc] init];
-		NSNumber *appId = [NSNumber numberWithInteger:_appId.integerValue];
+		NSNumber *appId = [NSNumber numberWithInteger:[[self class] appId].integerValue];
 		[storeViewController loadProductWithParameters:@{SKStoreProductParameterITunesItemIdentifier:appId} completionBlock:nil];
 		storeViewController.delegate = self.sharedInstance;
         
-        id <AppiraterDelegate> delegate = self.sharedInstance.delegate;
+        id <AppiraterDelegate> delegate = [[self sharedInstance] delegate];
 		if ([delegate respondsToSelector:@selector(appiraterWillPresentModalView:animated:)]) {
 			[delegate appiraterWillPresentModalView:self.sharedInstance animated:_usesAnimation];
 		}
@@ -479,7 +479,7 @@ static NSString* _rateLater = nil;
 		#if TARGET_IPHONE_SIMULATOR
 		NSLog(@"APPIRATER NOTE: iTunes App Store is not supported on the iOS simulator. Unable to open App Store page.");
 		#else
-		NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
+		NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", [[self class] appId]]];
 		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
 		#endif
 	}
@@ -488,7 +488,7 @@ static NSString* _rateLater = nil;
 - (void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex {
 	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
     
-    id <AppiraterDelegate> delegate = _delegate;
+    id <AppiraterDelegate> thedelegate = _delegate;
 	
 	switch (buttonIndex) {
 		case 0:
@@ -496,8 +496,8 @@ static NSString* _rateLater = nil;
 			// they don't want to rate it
 			[userDefaults setBool:YES forKey:kAppiraterDeclinedToRate];
 			[userDefaults synchronize];
-			if(delegate && [delegate respondsToSelector:@selector(appiraterDidDeclineToRate:)]){
-				[delegate appiraterDidDeclineToRate:self];
+			if(thedelegate && [thedelegate respondsToSelector:@selector(appiraterDidDeclineToRate:)]){
+				[thedelegate appiraterDidDeclineToRate:self];
 			}
 			break;
 		}
@@ -506,8 +506,8 @@ static NSString* _rateLater = nil;
 			// they want to rate it
 
 			[[self class] rateApp];
-			if(delegate&& [delegate respondsToSelector:@selector(appiraterDidOptToRate:)]){
-				[delegate appiraterDidOptToRate:self];
+			if(thedelegate && [thedelegate respondsToSelector:@selector(appiraterDidOptToRate:)]){
+				[thedelegate appiraterDidOptToRate:self];
 			}
 			break;
 		}
@@ -515,8 +515,8 @@ static NSString* _rateLater = nil;
 			// remind them later
 			[userDefaults setDouble:[[NSDate date] timeIntervalSince1970] forKey:kAppiraterReminderRequestDate];
 			[userDefaults synchronize];
-			if(delegate && [delegate respondsToSelector:@selector(appiraterDidOptToRemindLater:)]){
-				[delegate appiraterDidOptToRemindLater:self];
+			if(thedelegate && [thedelegate respondsToSelector:@selector(appiraterDidOptToRemindLater:)]){
+				[thedelegate appiraterDidOptToRemindLater:self];
 			}
 			break;
 		default:
@@ -621,7 +621,7 @@ static NSString* _rateLater = nil;
 		UIViewController *presentingController = [UIApplication sharedApplication].keyWindow.rootViewController;
 		presentingController = [self topMostViewController: presentingController];
 		[presentingController dismissViewControllerAnimated:_usesAnimation completion:^{
-            id <AppiraterDelegate> delegate = self.sharedInstance.delegate;
+            id <AppiraterDelegate> delegate = [[self sharedInstance] delegate];
 			if ([delegate respondsToSelector:@selector(appiraterDidDismissModalView:animated:)]) {
 				[delegate appiraterDidDismissModalView:(Appirater *)self animated:usedAnimation];
 			}
