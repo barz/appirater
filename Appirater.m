@@ -38,6 +38,10 @@
 #import <SystemConfiguration/SCNetworkReachability.h>
 #include <netinet/in.h>
 
+#if ! __has_feature(objc_arc)
+#warning This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
+#endif
+
 NSString *const kAppiraterFirstUseDate				= @"kAppiraterFirstUseDate";
 NSString *const kAppiraterUseCount					= @"kAppiraterUseCount";
 NSString *const kAppiraterSignificantEventCount		= @"kAppiraterSignificantEventCount";
@@ -55,7 +59,15 @@ static NSInteger _usesUntilPrompt = 20;
 static NSInteger _significantEventsUntilPrompt = -1;
 static double _timeBeforeReminding = 1;
 static BOOL _debug = NO;
-static id<AppiraterDelegate> _delegate;
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_5_0
+	static id<AppiraterDelegate> _delegate;
+#else
+	__weak static id<AppiraterDelegate> _delegate;
+#endif
+static BOOL _usesAnimation = TRUE;
+static BOOL _openInAppStore = NO;
+static UIStatusBarStyle _statusBarStyle;
+static BOOL _modalOpen = false;
 
 static NSString* _message = nil;
 static NSString* _messageTitle = nil;
@@ -104,6 +116,18 @@ static NSString* _rateLater = nil;
 }
 + (void)setDelegate:(id<AppiraterDelegate>)delegate{
 	_delegate = delegate;
+}
++ (void)setUsesAnimation:(BOOL)animation {
+	_usesAnimation = animation;
+}
++ (void)setOpenInAppStore:(BOOL)openInAppStore {
+    _openInAppStore = openInAppStore;
+}
++ (void)setStatusBarStyle:(UIStatusBarStyle)style {
+	_statusBarStyle = style;
+}
++ (void)setModalOpen:(BOOL)open {
+	_modalOpen = open;
 }
 
 - (BOOL)connectedToNetwork {
@@ -159,11 +183,12 @@ static NSString* _rateLater = nil;
 											   cancelButtonTitle:[[self class] cancelButton]
 											   otherButtonTitles:[[self class] rateButton], [[self class] rateLater], nil];
 	self.ratingAlert = alertView;
-	[alertView show];
+    [alertView show];
 
-	if(self.delegate && [self.delegate respondsToSelector:@selector(appiraterDidDisplayAlert:)]){
-		[self.delegate appiraterDidDisplayAlert:self];
-	}
+    id <AppiraterDelegate> delegate = _delegate;
+    if (delegate && [delegate respondsToSelector:@selector(appiraterDidDisplayAlert:)]) {
+             [delegate appiraterDidDisplayAlert:self];
+    }
 }
 
 - (BOOL)ratingConditionsHaveBeenMet {
@@ -193,7 +218,7 @@ static NSString* _rateLater = nil;
 		return NO;
 	
 	// has the user already rated the app?
-	if ([userDefaults boolForKey:kAppiraterRatedCurrentVersion])
+	if ([self userHasRatedCurrentVersion])
 		return NO;
 	
 	// if the user wanted to be reminded later, has enough time passed?
@@ -332,6 +357,14 @@ static NSString* _rateLater = nil;
 	}
 }
 
+- (BOOL)userHasDeclinedToRate {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:kAppiraterDeclinedToRate];
+}
+
+- (BOOL)userHasRatedCurrentVersion {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:kAppiraterRatedCurrentVersion];
+}
+
 + (void)appLaunched {
 	[self appLaunched:YES];
 }
@@ -371,23 +404,91 @@ static NSString* _rateLater = nil;
                    });
 }
 
-+ (void)rateApp {
-#if TARGET_IPHONE_SIMULATOR
-	NSLog(@"APPIRATER NOTE: iTunes App Store is not supported on the iOS simulator. Unable to open App Store page.");
-#else
-	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-
-	// this URL Scheme should work in the iOS 6 App Store in addition to older stores
-	NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", [[self class] appId]]];
-	
-	[userDefaults setBool:YES forKey:kAppiraterRatedCurrentVersion];
-	[userDefaults synchronize];
-	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
-#endif
++ (void)showPrompt {
+    if ([[self sharedInstance] connectedToNetwork]
+        && ![[self sharedInstance] userHasDeclinedToRate]
+        && ![[self sharedInstance] userHasRatedCurrentVersion]) {
+        [[self sharedInstance] showRatingAlert];
+    }
 }
 
-- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
++ (id)getRootViewController {
+    UIWindow *window = [[UIApplication sharedApplication] keyWindow];
+    if (window.windowLevel != UIWindowLevelNormal) {
+        NSArray *windows = [[UIApplication sharedApplication] windows];
+        for(window in windows) {
+            if (window.windowLevel == UIWindowLevelNormal) {
+                break;
+            }
+        }
+    }
+    
+    for (UIView *subView in [window subviews])
+    {
+        UIResponder *responder = [subView nextResponder];
+        if([responder isKindOfClass:[UIViewController class]]) {
+            return [self topMostViewController: (UIViewController *) responder];
+        }
+    }
+    
+    return nil;
+}
+
++ (UIViewController *) topMostViewController: (UIViewController *) controller {
+	BOOL isPresenting = NO;
+	do {
+		// this path is called only on iOS 6+, so -presentedViewController is fine here.
+		UIViewController *presented = [controller presentedViewController];
+		isPresenting = presented != nil;
+		if(presented != nil) {
+			controller = presented;
+		}
+		
+	} while (isPresenting);
+	
+	return controller;
+}
+
++ (void)rateApp {	
 	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+	[userDefaults setBool:YES forKey:kAppiraterRatedCurrentVersion];
+	[userDefaults synchronize];
+
+	//Use the in-app StoreKit view if available (iOS 6) and imported. This works in the simulator.
+	if (!_openInAppStore && NSStringFromClass([SKStoreProductViewController class]) != nil) {
+		
+		SKStoreProductViewController *storeViewController = [[SKStoreProductViewController alloc] init];
+		NSNumber *appId = [NSNumber numberWithInteger:_appId.integerValue];
+		[storeViewController loadProductWithParameters:@{SKStoreProductParameterITunesItemIdentifier:appId} completionBlock:nil];
+		storeViewController.delegate = self.sharedInstance;
+        
+        id <AppiraterDelegate> delegate = self.sharedInstance.delegate;
+		if ([delegate respondsToSelector:@selector(appiraterWillPresentModalView:animated:)]) {
+			[delegate appiraterWillPresentModalView:self.sharedInstance animated:_usesAnimation];
+		}
+		[[self getRootViewController] presentViewController:storeViewController animated:_usesAnimation completion:^{
+			[self setModalOpen:YES];
+			//Temporarily use a black status bar to match the StoreKit view.
+			[self setStatusBarStyle:[UIApplication sharedApplication].statusBarStyle];
+			[[UIApplication sharedApplication]setStatusBarStyle:UIStatusBarStyleBlackOpaque animated:_usesAnimation];
+		}];
+	
+	//Use the standard openUrl method if StoreKit is unavailable.
+	} else {
+		
+		#if TARGET_IPHONE_SIMULATOR
+		NSLog(@"APPIRATER NOTE: iTunes App Store is not supported on the iOS simulator. Unable to open App Store page.");
+		#else
+		NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
+		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
+		#endif
+	}
+}
+
+- (void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex {
+	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    
+    id <AppiraterDelegate> delegate = _delegate;
 	
 	switch (buttonIndex) {
 		case 0:
@@ -395,17 +496,18 @@ static NSString* _rateLater = nil;
 			// they don't want to rate it
 			[userDefaults setBool:YES forKey:kAppiraterDeclinedToRate];
 			[userDefaults synchronize];
-			if(self.delegate && [self.delegate respondsToSelector:@selector(appiraterDidDeclineToRate:)]){
-				[self.delegate appiraterDidDeclineToRate:self];
+			if(delegate && [delegate respondsToSelector:@selector(appiraterDidDeclineToRate:)]){
+				[delegate appiraterDidDeclineToRate:self];
 			}
 			break;
 		}
 		case 1:
 		{
 			// they want to rate it
+
 			[[self class] rateApp];
-			if(self.delegate && [self.delegate respondsToSelector:@selector(appiraterDidOptToRate:)]){
-				[self.delegate appiraterDidOptToRate:self];
+			if(delegate&& [delegate respondsToSelector:@selector(appiraterDidOptToRate:)]){
+				[delegate appiraterDidOptToRate:self];
 			}
 			break;
 		}
@@ -413,8 +515,8 @@ static NSString* _rateLater = nil;
 			// remind them later
 			[userDefaults setDouble:[[NSDate date] timeIntervalSince1970] forKey:kAppiraterReminderRequestDate];
 			[userDefaults synchronize];
-			if(self.delegate && [self.delegate respondsToSelector:@selector(appiraterDidOptToRemindLater:)]){
-				[self.delegate appiraterDidOptToRemindLater:self];
+			if(delegate && [delegate respondsToSelector:@selector(appiraterDidOptToRemindLater:)]){
+				[delegate appiraterDidOptToRemindLater:self];
 			}
 			break;
 		default:
@@ -501,6 +603,31 @@ static NSString* _rateLater = nil;
 + (double)timeBeforeReminding
 {
     return _timeBeforeReminding;
+}
+
+//Delegate call from the StoreKit view.
+- (void)productViewControllerDidFinish:(SKStoreProductViewController *)viewController {
+	[[self class] closeModal];
+}
+
+//Close the in-app rating (StoreKit) view and restore the previous status bar style.
++ (void)closeModal {
+	if (_modalOpen) {
+		[[UIApplication sharedApplication]setStatusBarStyle:_statusBarStyle animated:_usesAnimation];
+		BOOL usedAnimation = _usesAnimation;
+		[self setModalOpen:NO];
+		
+		// get the top most controller (= the StoreKit Controller) and dismiss it
+		UIViewController *presentingController = [UIApplication sharedApplication].keyWindow.rootViewController;
+		presentingController = [self topMostViewController: presentingController];
+		[presentingController dismissViewControllerAnimated:_usesAnimation completion:^{
+            id <AppiraterDelegate> delegate = self.sharedInstance.delegate;
+			if ([delegate respondsToSelector:@selector(appiraterDidDismissModalView:animated:)]) {
+				[delegate appiraterDidDismissModalView:(Appirater *)self animated:usedAnimation];
+			}
+		}];
+		[self.class setStatusBarStyle:(UIStatusBarStyle)nil];
+	}
 }
 
 @end
