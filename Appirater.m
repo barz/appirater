@@ -469,8 +469,15 @@ static NSString* _rateLater = nil;
 		[[self getRootViewController] presentViewController:storeViewController animated:_usesAnimation completion:^{
 			[self setModalOpen:YES];
 			//Temporarily use a black status bar to match the StoreKit view.
+
+            // FIXME: Hsoi 2013-08-22 - What to do about the status bar??
+            // I'm going to wait for the Appirater folks to officially fix this, but for now for my iOS 7
+            // build work I will just use UIStatusBarStyleLightContent, because that has the same enum
+            // value as UIStatusBarStyleBlackOpaque (originally used here). It'll be good enough to
+            // get going, and we can resolve this later when Appirater is updated.
+            
 			[self setStatusBarStyle:[UIApplication sharedApplication].statusBarStyle];
-			[[UIApplication sharedApplication]setStatusBarStyle:UIStatusBarStyleBlackOpaque animated:_usesAnimation];
+			[[UIApplication sharedApplication]setStatusBarStyle:UIStatusBarStyleLightContent animated:_usesAnimation];
 		}];
 	
 	//Use the standard openUrl method if StoreKit is unavailable.
