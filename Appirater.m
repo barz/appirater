@@ -51,7 +51,7 @@ NSString *const kAppiraterDeclinedToRate			= @"kAppiraterDeclinedToRate";
 NSString *const kAppiraterReminderRequestDate		= @"kAppiraterReminderRequestDate";
 
 NSString *templateReviewURL = @"itms-apps://ax.itunes.apple.com/WebObjects/MZStore.woa/wa/viewContentsUserReviews?type=Purple+Software&id=APP_ID";
-NSString *templateReviewURLiOS6 = @"itms-apps://itunes.apple.com/LANGUAGE/app/idAPP_ID";
+NSString *templateReviewURLiOS7 = @"itms-apps://itunes.apple.com/LANGUAGE/app/idAPP_ID";
 
 static NSString *_appId;
 static double _daysUntilPrompt = 30;
@@ -68,6 +68,7 @@ static BOOL _usesAnimation = TRUE;
 static BOOL _openInAppStore = NO;
 static UIStatusBarStyle _statusBarStyle;
 static BOOL _modalOpen = false;
+static BOOL _alwaysUseMainBundle = NO;
 
 static NSString* _message = nil;
 static NSString* _messageTitle = nil;
@@ -128,6 +129,29 @@ static NSString* _rateLater = nil;
 }
 + (void)setModalOpen:(BOOL)open {
 	_modalOpen = open;
+}
++ (void)setAlwaysUseMainBundle:(BOOL)alwaysUseMainBundle {
+    _alwaysUseMainBundle = alwaysUseMainBundle;
+}
+
++ (NSBundle *)bundle
+{
+    NSBundle *bundle;
+
+    if (_alwaysUseMainBundle) {
+        bundle = [NSBundle mainBundle];
+    } else {
+        NSURL *appiraterBundleURL = [[NSBundle mainBundle] URLForResource:@"Appirater" withExtension:@"bundle"];
+
+        if (appiraterBundleURL) {
+            // Appirater.bundle will likely only exist when used via CocoaPods
+            bundle = [NSBundle bundleWithURL:appiraterBundleURL];
+        } else {
+            bundle = [NSBundle mainBundle];
+        }
+    }
+
+    return bundle;
 }
 
 - (BOOL)connectedToNetwork {
@@ -487,6 +511,13 @@ static NSString* _rateLater = nil;
 		NSLog(@"APPIRATER NOTE: iTunes App Store is not supported on the iOS simulator. Unable to open App Store page.");
 		#else
 		NSString *reviewURL = [templateReviewURL stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", [[self class] appId]]];
+
+		// iOS 7 needs a different templateReviewURL @see https://github.com/arashpayan/appirater/issues/131
+		if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0) {
+			reviewURL = [templateReviewURLiOS7 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", [[self class] appId]]];
+			reviewURL = [reviewURL stringByReplacingOccurrencesOfString:@"LANGUAGE" withString:[NSString stringWithFormat:@"%@", [[NSLocale preferredLanguages] objectAtIndex:0]]];
+		}
+
 		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
 		#endif
 	}
