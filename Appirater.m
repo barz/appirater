@@ -78,7 +78,7 @@ static NSString* _rateLater = nil;
 
 @interface Appirater ()
 - (BOOL)connectedToNetwork;
-+ (id)sharedInstance;
++ (instancetype)sharedInstance;
 - (void)showRatingAlert;
 - (BOOL)ratingConditionsHaveBeenMet;
 - (void)incrementUseCount;
@@ -121,7 +121,7 @@ static NSString* _rateLater = nil;
 	_usesAnimation = animation;
 }
 + (void)setOpenInAppStore:(BOOL)openInAppStore {
-    [Appirater sharedInstance].openInAppStore = openInAppStore;
+    [[self sharedInstance] setOpenInAppStore:openInAppStore];
 }
 + (void)setStatusBarStyle:(UIStatusBarStyle)style {
 	_statusBarStyle = style;
@@ -197,7 +197,7 @@ static NSString* _rateLater = nil;
     return ((isReachable && !needsConnection) || nonWiFi) ? (testConnection ? YES : NO) : NO;
 }
 
-+ (id)sharedInstance {
++ (instancetype)sharedInstance {
 	static id appirater = nil;
 	if (appirater == nil)
 	{
@@ -491,7 +491,7 @@ static NSString* _rateLater = nil;
 	[userDefaults synchronize];
 
 	//Use the in-app StoreKit view if available (iOS 6) and imported. This works in the simulator.
-	if (![Appirater sharedInstance].openInAppStore && NSStringFromClass([SKStoreProductViewController class]) != nil) {
+	if (![[self sharedInstance] openInAppStore] && NSStringFromClass([SKStoreProductViewController class]) != nil) {
 		
 		SKStoreProductViewController *storeViewController = [[SKStoreProductViewController alloc] init];
 		NSNumber *appId = [NSNumber numberWithInteger:[[self class] appId].integerValue];
