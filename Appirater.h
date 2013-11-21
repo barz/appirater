@@ -46,21 +46,21 @@ extern NSString *const kAppiraterRatedCurrentVersion;
 extern NSString *const kAppiraterDeclinedToRate;
 extern NSString *const kAppiraterReminderRequestDate;
 
-/*
+/*!
  Your localized app's name.
  */
 #ifndef APPIRATER_LOCALIZED_APP_NAME
 #define APPIRATER_LOCALIZED_APP_NAME    [[[NSBundle mainBundle] localizedInfoDictionary] objectForKey:@"CFBundleDisplayName"]
 #endif
 
-/*
+/*!
  Your app's name.
  */
 #ifndef APPIRATER_APP_NAME
 #define APPIRATER_APP_NAME				APPIRATER_LOCALIZED_APP_NAME ? APPIRATER_LOCALIZED_APP_NAME : [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"]
 #endif
 
-/*
+/*!
  This is the message your users will see once they've passed the day+launches
  threshold.
  */
@@ -71,7 +71,7 @@ extern NSString *const kAppiraterReminderRequestDate;
 #define APPIRATER_MESSAGE				[NSString stringWithFormat:APPIRATER_LOCALIZED_MESSAGE, APPIRATER_APP_NAME]
 #endif
 
-/*
+/*!
  This is the title of the message alert that users will see.
  */
 #ifndef APPIRATER_LOCALIZED_MESSAGE_TITLE
@@ -81,14 +81,14 @@ extern NSString *const kAppiraterReminderRequestDate;
 #define APPIRATER_MESSAGE_TITLE             [NSString stringWithFormat:APPIRATER_LOCALIZED_MESSAGE_TITLE, APPIRATER_APP_NAME]
 #endif
 
-/*
+/*!
  The text of the button that rejects reviewing the app.
  */
 #ifndef APPIRATER_CANCEL_BUTTON
 #define APPIRATER_CANCEL_BUTTON			NSLocalizedStringFromTableInBundle(@"No, Thanks", @"AppiraterLocalizable", [Appirater bundle], nil)
 #endif
 
-/*
+/*!
  Text of button that will send user to app review page.
  */
 #ifndef APPIRATER_LOCALIZED_RATE_BUTTON
@@ -98,7 +98,7 @@ extern NSString *const kAppiraterReminderRequestDate;
 #define APPIRATER_RATE_BUTTON			[NSString stringWithFormat:APPIRATER_LOCALIZED_RATE_BUTTON, APPIRATER_APP_NAME]
 #endif
 
-/*
+/*!
  Text for button to remind the user to review later.
  */
 #ifndef APPIRATER_RATE_LATER
@@ -118,7 +118,7 @@ extern NSString *const kAppiraterReminderRequestDate;
 @property(nonatomic, unsafe_unretained) NSObject <AppiraterDelegate> *delegate;
 #endif
 
-/*
+/*!
  Tells Appirater that the app has launched, and on devices that do NOT
  support multitasking, the 'uses' count will be incremented. You should
  call this method at the end of your application delegate's
@@ -133,7 +133,7 @@ extern NSString *const kAppiraterReminderRequestDate;
  */
 + (void)appLaunched:(BOOL)canPromptForRating;
 
-/*
+/*!
  Tells Appirater that the app was brought to the foreground on multitasking
  devices. You should call this method from the application delegate's
  applicationWillEnterForeground: method.
@@ -147,7 +147,7 @@ extern NSString *const kAppiraterReminderRequestDate;
  */
 + (void)appEnteredForeground:(BOOL)canPromptForRating;
 
-/*
+/*!
  Tells Appirater that the user performed a significant event. A significant
  event is whatever you want it to be. If you're app is used to make VoIP
  calls, then you might want to call this method whenever the user places
@@ -163,7 +163,7 @@ extern NSString *const kAppiraterReminderRequestDate;
  */
 + (void)userDidSignificantEvent:(BOOL)canPromptForRating;
 
-/*
+/*!
  Tells Appirater to show the prompt (a rating alert). The prompt will be showed
  if there is connection available, the user hasn't declined to rate
  or hasn't rated current version.
@@ -173,7 +173,7 @@ extern NSString *const kAppiraterReminderRequestDate;
  */
 + (void)showPrompt;
 
-/*
+/*!
  Tells Appirater to open the App Store page where the user can specify a
  rating for the app. Also records the fact that this has happened, so the
  user won't be prompted again to rate the app.
@@ -186,7 +186,7 @@ extern NSString *const kAppiraterReminderRequestDate;
  */
 + (void)rateApp;
 
-/*
+/*!
  Tells Appirater to immediately close any open rating modals (e.g. StoreKit rating VCs).
 */
 + (void)closeModal;
@@ -195,18 +195,18 @@ extern NSString *const kAppiraterReminderRequestDate;
 
 @interface Appirater(Configuration)
 
-/*
+/*!
  Set your Apple generated software id here.
  */
 - (void) setAppId:(NSString*)appId;
 
-/*
+/*!
  Users will need to have the same version of your app installed for this many
  days before they will be prompted to rate it.
  */
 + (void) setDaysUntilPrompt:(double)value;
 
-/*
+/*!
  An example of a 'use' would be if the user launched the app. Bringing the app
  into the foreground (on devices that support it) would also be considered
  a 'use'. You tell Appirater about these events using the two methods:
@@ -218,7 +218,7 @@ extern NSString *const kAppiraterReminderRequestDate;
  */
 + (void) setUsesUntilPrompt:(NSInteger)value;
 
-/*
+/*!
  A significant event can be anything you want to be in your app. In a
  telephone app, a significant event might be placing or receiving a call.
  In a game, it might be beating a level or a boss. This is just another
@@ -232,35 +232,35 @@ extern NSString *const kAppiraterReminderRequestDate;
 + (void) setSignificantEventsUntilPrompt:(NSInteger)value;
 
 
-/*
+/*!
  Once the rating alert is presented to the user, they might select
  'Remind me later'. This value specifies how long (in days) Appirater
  will wait before reminding them.
  */
 + (void) setTimeBeforeReminding:(double)value;
 
-/*
+/*!
  'YES' will show the Appirater alert everytime. Useful for testing how your message
  looks and making sure the link to your app's review page works.
  */
 + (void) setDebug:(BOOL)debug;
 
-/*
+/*!
  Set the delegate if you want to know when Appirater does something
  */
 + (void)setDelegate:(id<AppiraterDelegate>)delegate;
 
-/*
+/*!
  Set whether or not Appirater uses animation (currently respected when pushing modal StoreKit rating VCs).
  */
 + (void)setUsesAnimation:(BOOL)animation;
 
-/*
+/*!
  If set to YES, Appirater will open App Store link (instead of SKStoreProductViewController on iOS 6). Default NO.
  */
 + (void)setOpenInAppStore:(BOOL)openInAppStore;
 
-/*
+/*!
  If set to YES, the main bundle will always be used to load localized strings.
  Set this to YES if you have provided your own custom localizations in AppiraterLocalizable.strings
  in your main bundle.  Default is NO.
@@ -293,12 +293,12 @@ extern NSString *const kAppiraterReminderRequestDate;
 @end
 
 
-/*
+/*!
  Methods in this interface are public out of necessity, but may change without notice
  */
 @interface Appirater(Unsafe)
 
-/*
+/*!
  The bundle localized strings will be loaded from.
 */
 +(NSBundle *)bundle;
@@ -307,7 +307,7 @@ extern NSString *const kAppiraterReminderRequestDate;
 
 @interface Appirater(Deprecated)
 
-/*
+/*!
  DEPRECATED: While still functional, it's better to use
  appLaunched:(BOOL)canPromptForRating instead.
  

@@ -240,12 +240,12 @@ static NSString* _rateLater = nil;
 		return NO;
 	
 	// check if the app has been used enough
-	int useCount = [userDefaults integerForKey:kAppiraterUseCount];
+	NSInteger useCount = [userDefaults integerForKey:kAppiraterUseCount];
 	if (useCount <= [[self class] usesUntilPrompt])
 		return NO;
 	
 	// check if the user has done enough significant events
-	int sigEventCount = [userDefaults integerForKey:kAppiraterSignificantEventCount];
+	NSInteger sigEventCount = [userDefaults integerForKey:kAppiraterSignificantEventCount];
 	if (sigEventCount <= [[self class] sigEventsUntilPrompt])
 		return NO;
 	
@@ -294,12 +294,12 @@ static NSString* _rateLater = nil;
 		}
 		
 		// increment the use count
-		int useCount = [userDefaults integerForKey:kAppiraterUseCount];
-        if (useCount < INT_MAX) // prevent rollover
+		NSInteger useCount = [userDefaults integerForKey:kAppiraterUseCount];
+		if (useCount < NSIntegerMax) // prevent rollover
             useCount++;
 		[userDefaults setInteger:useCount forKey:kAppiraterUseCount];
 		if (_debug)
-			NSLog(@"APPIRATER Use count: %d", useCount);
+			NSLog(@"APPIRATER Use count: %@", @(useCount));
 	}
 	else
 	{
@@ -343,12 +343,12 @@ static NSString* _rateLater = nil;
 		}
 		
 		// increment the significant event count
-		int sigEventCount = [userDefaults integerForKey:kAppiraterSignificantEventCount];
-        if (sigEventCount < INT_MAX) // prevent rollover
+		NSInteger sigEventCount = [userDefaults integerForKey:kAppiraterSignificantEventCount];
+        if (sigEventCount < NSIntegerMax) // prevent rollover
             sigEventCount++;
 		[userDefaults setInteger:sigEventCount forKey:kAppiraterSignificantEventCount];
 		if (_debug)
-			NSLog(@"APPIRATER Significant event count: %d", sigEventCount);
+			NSLog(@"APPIRATER Significant event count: %@", @(sigEventCount));
 	}
 	else
 	{
