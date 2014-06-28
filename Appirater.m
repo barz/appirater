@@ -241,12 +241,12 @@ static NSString* _rateLater = nil;
 	
 	// check if the app has been used enough
 	NSInteger useCount = [userDefaults integerForKey:kAppiraterUseCount];
-	if (useCount <= [[self class] usesUntilPrompt])
+	if (useCount < [[self class] usesUntilPrompt])
 		return NO;
 	
 	// check if the user has done enough significant events
 	NSInteger sigEventCount = [userDefaults integerForKey:kAppiraterSignificantEventCount];
-	if (sigEventCount <= [[self class] sigEventsUntilPrompt])
+	if (sigEventCount < [[self class] sigEventsUntilPrompt])
 		return NO;
 	
 	// has the user previously declined to rate this version of the app?
