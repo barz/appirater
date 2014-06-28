@@ -166,6 +166,12 @@ static NSString* _rateLater = nil;
     return self;
 }
 
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+
 - (BOOL)connectedToNetwork {
     // Create zero addy
     struct sockaddr_in zeroAddress;
