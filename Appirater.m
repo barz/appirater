@@ -120,31 +120,6 @@ static NSString* _rateLater = nil;
     _timeBeforeReminding = value;
 }
 
-+ (void) setCustomAlertTitle:(NSString *)title
-{
-    [self sharedInstance].alertTitle = title;
-}
-
-+ (void) setCustomAlertMessage:(NSString *)message
-{
-    [self sharedInstance].alertMessage = message;
-}
-
-+ (void) setCustomAlertCancelButtonTitle:(NSString *)cancelTitle
-{
-    [self sharedInstance].alertCancelTitle = cancelTitle;
-}
-
-+ (void) setCustomAlertRateButtonTitle:(NSString *)rateTitle
-{
-    [self sharedInstance].alertRateTitle = rateTitle;
-}
-
-+ (void) setCustomAlertRateLaterButtonTitle:(NSString *)rateLaterTitle
-{
-    [self sharedInstance].alertRateLaterTitle = rateLaterTitle;
-}
-
 + (void) setDebug:(BOOL)debug {
     _debug = debug;
 }
@@ -212,9 +187,6 @@ static NSString* _rateLater = nil;
     return _alertRateLaterTitle ? _alertRateLaterTitle : APPIRATER_RATE_LATER;
 }
 
-- (void)dealloc {
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-}
 
 - (id)init {
     self = [super init];
@@ -265,6 +237,7 @@ static NSString* _rateLater = nil;
 	
     return ((isReachable && !needsConnection) || nonWiFi) ? (testConnection ? YES : NO) : NO;
 }
+
 
 + (instancetype)sharedInstance {
 	static id appirater = nil;
@@ -609,7 +582,7 @@ static NSString* _rateLater = nil;
 		[storeViewController loadProductWithParameters:@{SKStoreProductParameterITunesItemIdentifier:appId} completionBlock:nil];
 		storeViewController.delegate = self.sharedInstance;
         
-        id <AppiraterDelegate> delegate = [[self sharedInstance] delegate];
+        id <AppiraterDelegate> delegate = ((Appirater*)[self sharedInstance]).delegate;
 		if ([delegate respondsToSelector:@selector(appiraterWillPresentModalView:animated:)]) {
 			[delegate appiraterWillPresentModalView:self.sharedInstance animated:_usesAnimation];
 		}
@@ -780,7 +753,7 @@ static NSString* _rateLater = nil;
 		UIViewController *presentingController = [UIApplication sharedApplication].keyWindow.rootViewController;
 		presentingController = [self topMostViewController: presentingController];
 		[presentingController dismissViewControllerAnimated:_usesAnimation completion:^{
-            id <AppiraterDelegate> delegate = [[self sharedInstance] delegate];
+            id <AppiraterDelegate> delegate = ((Appirater*)[self sharedInstance]).delegate;
 			if ([delegate respondsToSelector:@selector(appiraterDidDismissModalView:animated:)]) {
 				[delegate appiraterDidDismissModalView:(Appirater *)self animated:usedAnimation];
 			}
