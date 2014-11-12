@@ -1,8 +1,10 @@
 Change Log
 ==========
 
-Version 2.0.2 *(2013-09-24)*
+Version 2.0.4 *(2014-09-18)*
 ----------------------------
- * Fix: App store shows blank page with some localizations
- * Change: Use App Store instead of SKStoreProductViewController on iOS 7 (issue #138)
- * New: Added a CHANGELOG!!
+* Change: Better URL for iOS 7.1 and 8 support
+
+Version 2.0.3 *(2014-05-14)*
+----------------------------
+ * New: Make alert content customizable
