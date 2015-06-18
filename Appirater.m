@@ -604,12 +604,12 @@ static NSString* _rateLater = nil;
 
 		// iOS 7 needs a different templateReviewURL @see https://github.com/arashpayan/appirater/issues/131
 		if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0 && [[[UIDevice currentDevice] systemVersion] floatValue] < 7.1) {
-			reviewURL = [templateReviewURLiOS7 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
+			reviewURL = [templateReviewURLiOS7 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", self.appId]];
 		}
         // iOS 8 needs a different templateReviewURL also @see https://github.com/arashpayan/appirater/issues/182
         else if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0)
         {
-            reviewURL = [templateReviewURLiOS8 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", _appId]];
+            reviewURL = [templateReviewURLiOS8 stringByReplacingOccurrencesOfString:@"APP_ID" withString:[NSString stringWithFormat:@"%@", self.appId]];
         }
 
 		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:reviewURL]];
