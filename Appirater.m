@@ -70,6 +70,12 @@ static UIStatusBarStyle _statusBarStyle;
 static BOOL _modalOpen = false;
 static BOOL _alwaysUseMainBundle = NO;
 
+static NSString* _message = nil;
+static NSString* _messageTitle = nil;
+static NSString* _cancelButton = nil;
+static NSString* _rateButton = nil;
+static NSString* _rateLater = nil;
+
 @interface Appirater ()
 @property (nonatomic, copy) NSString *alertTitle;
 @property (nonatomic, copy) NSString *alertMessage;
@@ -699,13 +705,13 @@ static BOOL _alwaysUseMainBundle = NO;
 	}
 }
 
-
 #pragma mark - Configuration methods
 
 + (NSString*)appID
 {
     return _appId;
 }
+
 
 
 + (NSString*)message
