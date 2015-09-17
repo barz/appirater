@@ -49,61 +49,41 @@ extern NSString *const kAppiraterReminderRequestDate;
 /*!
  Your localized app's name.
  */
-#ifndef APPIRATER_LOCALIZED_APP_NAME
 #define APPIRATER_LOCALIZED_APP_NAME    [[[NSBundle mainBundle] localizedInfoDictionary] objectForKey:@"CFBundleDisplayName"]
-#endif
 
 /*!
  Your app's name.
  */
-#ifndef APPIRATER_APP_NAME
-#define APPIRATER_APP_NAME				APPIRATER_LOCALIZED_APP_NAME ? APPIRATER_LOCALIZED_APP_NAME : [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"]
-#endif
+#define APPIRATER_APP_NAME				APPIRATER_LOCALIZED_APP_NAME ?: [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"] ?: [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"]
 
 /*!
  This is the message your users will see once they've passed the day+launches
  threshold.
  */
-#ifndef APPIRATER_LOCALIZED_MESSAGE
 #define APPIRATER_LOCALIZED_MESSAGE     NSLocalizedStringFromTableInBundle(@"If you enjoy using %@, would you mind taking a moment to rate it? It won't take more than a minute. Thanks for your support!", @"AppiraterLocalizable", [Appirater bundle], nil)
-#endif
-#ifndef APPIRATER_MESSAGE
 #define APPIRATER_MESSAGE				[NSString stringWithFormat:APPIRATER_LOCALIZED_MESSAGE, APPIRATER_APP_NAME]
-#endif
 
 /*!
  This is the title of the message alert that users will see.
  */
-#ifndef APPIRATER_LOCALIZED_MESSAGE_TITLE
 #define APPIRATER_LOCALIZED_MESSAGE_TITLE   NSLocalizedStringFromTableInBundle(@"Rate %@", @"AppiraterLocalizable", [Appirater bundle], nil)
-#endif
-#ifndef APPIRATER_MESSAGE_TITLE
 #define APPIRATER_MESSAGE_TITLE             [NSString stringWithFormat:APPIRATER_LOCALIZED_MESSAGE_TITLE, APPIRATER_APP_NAME]
-#endif
 
 /*!
  The text of the button that rejects reviewing the app.
  */
-#ifndef APPIRATER_CANCEL_BUTTON
 #define APPIRATER_CANCEL_BUTTON			NSLocalizedStringFromTableInBundle(@"No, Thanks", @"AppiraterLocalizable", [Appirater bundle], nil)
-#endif
 
 /*!
  Text of button that will send user to app review page.
  */
-#ifndef APPIRATER_LOCALIZED_RATE_BUTTON
 #define APPIRATER_LOCALIZED_RATE_BUTTON NSLocalizedStringFromTableInBundle(@"Rate %@", @"AppiraterLocalizable", [Appirater bundle], nil)
-#endif
-#ifndef APPIRATER_RATE_BUTTON
 #define APPIRATER_RATE_BUTTON			[NSString stringWithFormat:APPIRATER_LOCALIZED_RATE_BUTTON, APPIRATER_APP_NAME]
-#endif
 
 /*!
  Text for button to remind the user to review later.
  */
-#ifndef APPIRATER_RATE_LATER
 #define APPIRATER_RATE_LATER			NSLocalizedStringFromTableInBundle(@"Remind me later", @"AppiraterLocalizable", [Appirater bundle], nil)
-#endif
 
 @interface Appirater : NSObject <UIAlertViewDelegate, SKStoreProductViewControllerDelegate> {
 
@@ -202,6 +182,18 @@ extern NSString *const kAppiraterReminderRequestDate;
 */
 + (void)closeModal;
 
+/*!
+ Asks Appirater if the user has declined to rate;
+*/
+- (BOOL)userHasDeclinedToRate;
+
+/*!
+ Asks Appirater if the user has rated the current version.
+ Note that this is not a guarantee that the user has actually rated the app in the 
+ app store, but they've just clicked the rate button on the Appirater dialog. 
+*/
+- (BOOL)userHasRatedCurrentVersion;
+
 @end
 
 @interface Appirater(Configuration)
@@ -209,7 +201,7 @@ extern NSString *const kAppiraterReminderRequestDate;
 /*!
  Set your Apple generated software id here.
  */
-- (void) setAppId:(NSString*)appId;
++ (void) setAppId:(NSString*)appId;
 
 /*!
  Users will need to have the same version of your app installed for this many
@@ -327,8 +319,6 @@ extern NSString *const kAppiraterReminderRequestDate;
 + (double)timeBeforeReminding;      //  APPIRATER_TIME_BEFORE_REMINDING
 
 @end
-
-
 /*!
  Methods in this interface are public out of necessity, but may change without notice
  */
